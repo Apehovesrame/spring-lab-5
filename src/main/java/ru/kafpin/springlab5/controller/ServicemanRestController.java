@@ -71,7 +71,7 @@ public class ServicemanRestController {
         serviceman.setRank(rank);
         serviceman.setAddress(address);
 
-        // ВАЖНО: В JDBC мы получаем ID, а затем вытаскиваем собранный объект из БД
+        // В JDBC мы получаем ID, а затем вытаскиваем собранный объект из БД
         Long newId = servicemanRepository.save(serviceman);
         Serviceman savedServiceman = servicemanRepository.findById(newId).get();
 

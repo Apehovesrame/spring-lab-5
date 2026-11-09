@@ -21,7 +21,7 @@ public class ServicemanJdbcRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // Базовый SQL-запрос с JOIN для склеивания трех таблиц
+    // для склеивания трех таблиц
     private static final String SELECT_ALL_JOIN_SQL = """
             SELECT s.id as s_id, s.surname, s.name, s.patronymic, s.nationality, s.birth_date, s.position,
                    r.id as r_id, r.title,
@@ -31,19 +31,19 @@ public class ServicemanJdbcRepository {
             LEFT JOIN addresses a ON s.address_id = a.id
             """;
 
-    // 1. Получить всех (GET)
+    // Получить всех (GET)
     public List<Serviceman> findAll() {
         return jdbcTemplate.query(SELECT_ALL_JOIN_SQL, new ServicemanMapper());
     }
 
-    // 2. Найти одного по ID (GET)
+    // Найти по ID (GET)
     public Optional<Serviceman> findById(Long id) {
         String sql = SELECT_ALL_JOIN_SQL + " WHERE s.id = ?";
         List<Serviceman> result = jdbcTemplate.query(sql, new ServicemanMapper(), id);
         return result.stream().findFirst();
     }
 
-    // 3. Создать нового (POST)
+    // Создать нового (POST)
     public Long save(Serviceman serviceman) {
         String sql = "INSERT INTO servicemen (surname, name, patronymic, nationality, birth_date, position, rank_id, address_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -83,7 +83,7 @@ public class ServicemanJdbcRepository {
         );
     }
 
-    // 5. Удалить (DELETE)
+    // Удалить (DELETE)
     public int deleteById(Long id) {
         return jdbcTemplate.update("DELETE FROM servicemen WHERE id = ?", id);
     }

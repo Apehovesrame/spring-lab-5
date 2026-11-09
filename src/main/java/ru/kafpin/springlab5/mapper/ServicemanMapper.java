@@ -12,7 +12,6 @@ public class ServicemanMapper implements RowMapper<Serviceman> {
 
     @Override
     public Serviceman mapRow(ResultSet rs, int rowNum) throws SQLException {
-        // 1. Создаем военнослужащего и заполняем базовые поля
         Serviceman serviceman = new Serviceman();
         serviceman.setId(rs.getLong("s_id"));
         serviceman.setSurname(rs.getString("surname"));
@@ -25,13 +24,11 @@ public class ServicemanMapper implements RowMapper<Serviceman> {
         }
         serviceman.setPosition(rs.getString("position"));
 
-        // 2. Достаем данные звания (Rank) из той же строки и привязываем
         Rank rank = new Rank();
         rank.setId(rs.getLong("r_id"));
         rank.setTitle(rs.getString("title"));
         serviceman.setRank(rank);
 
-        // 3. Достаем данные адреса (Address)
         Address address = new Address();
         address.setId(rs.getLong("a_id"));
         address.setPostIndex(rs.getString("post_index"));
