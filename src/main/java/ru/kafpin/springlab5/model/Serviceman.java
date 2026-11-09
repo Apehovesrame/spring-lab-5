@@ -1,15 +1,11 @@
-package ru.kafpin.springlab4.model;
+package ru.kafpin.springlab5.model;
 
-import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-@Entity
-@Table(name = "servicemen")
 public class Serviceman {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String surname;
@@ -17,18 +13,13 @@ public class Serviceman {
     private String patronymic;
     private String nationality;
 
-    @Column(name = "birth_date")
     private LocalDate birthDate;
 
     private String position;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "rank_id", nullable = false)
     @JsonManagedReference
     private Rank rank;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "address_id", nullable = false)
     @JsonManagedReference
     private Address address;
 

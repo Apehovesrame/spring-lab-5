@@ -1,8 +1,9 @@
-package ru.kafpin.springlab4.dto;
+package ru.kafpin.springlab5.dto;
 
 import java.time.LocalDate;
 
-public class ServicemanDTO {
+public class ServicemanResponseDTO {
+    private Long id;
     private String surname;
     private String name;
     private String patronymic;
@@ -12,7 +13,10 @@ public class ServicemanDTO {
     private String rankTitle;
     private Long addressId;
 
-    public ServicemanDTO() {}
+    public ServicemanResponseDTO() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getSurname() { return surname; }
     public void setSurname(String surname) { this.surname = surname; }

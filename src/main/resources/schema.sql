@@ -1,3 +1,8 @@
+-- Сначала удаляем старые таблицы (в правильном порядке из-за связей)
+DROP TABLE IF EXISTS servicemen;
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS ranks;
+
 CREATE TABLE IF NOT EXISTS ranks (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL

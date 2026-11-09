@@ -1,73 +1,65 @@
-package ru.kafpin.springlab4.controller;
+package ru.kafpin.springlab5.controller;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.kafpin.springlab4.dto.ServicemanDTO;
-import ru.kafpin.springlab4.model.Address;
-import ru.kafpin.springlab4.model.Rank;
-import ru.kafpin.springlab4.model.Serviceman;
-import ru.kafpin.springlab4.repository.AddressRepository;
-import ru.kafpin.springlab4.repository.RankRepository;
-import ru.kafpin.springlab4.repository.ServicemanRepository;
+import ru.kafpin.springlab5.dto.ServicemanDTO;
+import ru.kafpin.springlab5.dto.ServicemanResponseDTO;
+import ru.kafpin.springlab5.model.Address;
+import ru.kafpin.springlab5.model.Rank;
+import ru.kafpin.springlab5.model.Serviceman;
+import ru.kafpin.springlab5.repository.AddressJdbcRepository;
+import ru.kafpin.springlab5.repository.RankJdbcRepository;
+import ru.kafpin.springlab5.repository.ServicemanJdbcRepository;
 
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @RestController
 @RequestMapping("/api")
 public class ServicemanRestController {
 
-    private final ServicemanRepository servicemanRepository;
-    private final RankRepository rankRepository;
-    private final AddressRepository addressRepository;
+    private final ServicemanJdbcRepository servicemanRepository;
+    private final RankJdbcRepository rankRepository;
+    private final AddressJdbcRepository addressRepository;
 
-    public ServicemanRestController(ServicemanRepository servicemanRepository,
-                                    RankRepository rankRepository,
-                                    AddressRepository addressRepository) {
+    public ServicemanRestController(ServicemanJdbcRepository servicemanRepository,
+                                    RankJdbcRepository rankRepository,
+                                    AddressJdbcRepository addressRepository) {
         this.servicemanRepository = servicemanRepository;
         this.rankRepository = rankRepository;
         this.addressRepository = addressRepository;
     }
 
-    // 1. БАЗОВЫЕ CRUD ОПЕРАЦИИ
-
-    // Получить всех военнослужащих
     @GetMapping("/servicemen")
-    public Iterable<Serviceman> getAllServicemen() {
+    public List<Serviceman> getAllServicemen() {
         return servicemanRepository.findAll();
     }
 
-    // Получить все звания
     @GetMapping("/ranks")
-    public Iterable<Rank> getAllRanks() {
+    public List<Rank> getAllRanks() {
         return rankRepository.findAll();
     }
 
-    // Получить все адреса
     @GetMapping("/addresses")
-    public Iterable<Address> getAllAddresses() {
+    public List<Address> getAllAddresses() {
         return addressRepository.findAll();
     }
 
-    // Получить одного военнослужащего по ID
     @GetMapping("/servicemen/{id}")
     public Serviceman getServiceman(@PathVariable("id") Long id) {
         return servicemanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Военнослужащий с ID " + id + " не найден"));
+                .orElseThrow(() -> new RuntimeException("Военнослужащий с ID " + id + " не найден"));
     }
 
-    // Создать нового военнослужащего через DTO (201 CREATED)
     @PostMapping("/servicemen")
     @ResponseStatus(HttpStatus.CREATED)
-    public Serviceman createServiceman(@RequestBody ServicemanDTO dto) {
+    public ServicemanResponseDTO createServiceman(@RequestBody ServicemanDTO dto) {
         Rank rank = rankRepository.findByTitleIgnoreCase(dto.getRankTitle())
-                .orElseThrow(() -> new EntityNotFoundException("Звание не найдено: " + dto.getRankTitle()));
+                .orElseThrow(() -> new RuntimeException("Звание не найдено: " + dto.getRankTitle()));
         Address address = addressRepository.findById(dto.getAddressId())
-                .orElseThrow(() -> new EntityNotFoundException("Адрес с ID " + dto.getAddressId() + " не найден"));
+                .orElseThrow(() -> new RuntimeException("Адрес не найден"));
 
         Serviceman serviceman = new Serviceman();
         serviceman.setSurname(dto.getSurname());
@@ -79,18 +71,32 @@ public class ServicemanRestController {
         serviceman.setRank(rank);
         serviceman.setAddress(address);
 
-        return servicemanRepository.save(serviceman);
+        // ВАЖНО: В JDBC мы получаем ID, а затем вытаскиваем собранный объект из БД
+        Long newId = servicemanRepository.save(serviceman);
+        Serviceman savedServiceman = servicemanRepository.findById(newId).get();
+
+        ServicemanResponseDTO responseDTO = new ServicemanResponseDTO();
+        responseDTO.setId(savedServiceman.getId());
+        responseDTO.setSurname(savedServiceman.getSurname());
+        responseDTO.setName(savedServiceman.getName());
+        responseDTO.setPatronymic(savedServiceman.getPatronymic());
+        responseDTO.setNationality(savedServiceman.getNationality());
+        responseDTO.setBirthDate(savedServiceman.getBirthDate());
+        responseDTO.setPosition(savedServiceman.getPosition());
+        responseDTO.setRankTitle(savedServiceman.getRank().getTitle());
+        responseDTO.setAddressId(savedServiceman.getAddress().getId());
+
+        return responseDTO;
     }
 
-    // Полное обновление военнослужащего (PUT)
     @PutMapping("/servicemen/{id}")
     public Serviceman updateServiceman(@PathVariable("id") Long id, @RequestBody ServicemanDTO dto) {
         Serviceman serviceman = servicemanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Военнослужащий с ID " + id + " не найден"));
+                .orElseThrow(() -> new RuntimeException("Военнослужащий не найден"));
         Rank rank = rankRepository.findByTitleIgnoreCase(dto.getRankTitle())
-                .orElseThrow(() -> new EntityNotFoundException("Некорректное звание: " + dto.getRankTitle()));
+                .orElseThrow(() -> new RuntimeException("Некорректное звание"));
         Address address = addressRepository.findById(dto.getAddressId())
-                .orElseThrow(() -> new EntityNotFoundException("Некорректный ID адреса: " + dto.getAddressId()));
+                .orElseThrow(() -> new RuntimeException("Некорректный ID адреса"));
 
         serviceman.setSurname(dto.getSurname());
         serviceman.setName(dto.getName());
@@ -101,31 +107,28 @@ public class ServicemanRestController {
         serviceman.setRank(rank);
         serviceman.setAddress(address);
 
-        return servicemanRepository.save(serviceman);
+        servicemanRepository.update(serviceman); // Обновляем через JDBC
+        return servicemanRepository.findById(id).get();
     }
 
-    // Удаление военнослужащего (204 NO CONTENT)
     @DeleteMapping("/servicemen/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteServiceman(@PathVariable("id") Long id) {
         servicemanRepository.deleteById(id);
     }
 
-    // 2. РАСШИРЕННАЯ БИЗНЕС-ЛОГИКА
-
-    // Бизнес-операция 1: Статистика и аналитика (с фильтром по городу)
     @GetMapping("/servicemen/statistics")
     public Map<String, Object> getStatistics(@RequestParam(required = false) String city) {
-        List<Serviceman> list = StreamSupport.stream(servicemanRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
+        List<Serviceman> list = servicemanRepository.findAll();
 
         if (city != null && !city.isBlank()) {
             list = list.stream()
-                    .filter(s -> s.getAddress().getCity().equalsIgnoreCase(city))
+                    .filter(s -> s.getAddress() != null && city.equalsIgnoreCase(s.getAddress().getCity()))
                     .collect(Collectors.toList());
         }
 
         Map<String, Long> countByRank = list.stream()
+                .filter(s -> s.getRank() != null)
                 .collect(Collectors.groupingBy(s -> s.getRank().getTitle(), Collectors.counting()));
 
         double averageAge = list.stream()
@@ -141,25 +144,24 @@ public class ServicemanRestController {
         return stats;
     }
 
-    // Бизнес-операция 2: Повышение в звании и назначение на новую должность
     @PostMapping("/servicemen/{id}/promote")
-    public Map<String, Object> promoteServiceman(@PathVariable Long id,
-                                                 @RequestBody Map<String, String> request) {
+    public Map<String, Object> promoteServiceman(@PathVariable Long id, @RequestBody Map<String, String> request) {
         Serviceman serviceman = servicemanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Военнослужащий не найден"));
+                .orElseThrow(() -> new RuntimeException("Военнослужащий не найден"));
 
         String newRankTitle = request.get("newRank");
         String newPosition = request.get("newPosition");
-
         String oldRankTitle = serviceman.getRank().getTitle();
+
         Rank newRank = rankRepository.findByTitleIgnoreCase(newRankTitle)
-                .orElseThrow(() -> new EntityNotFoundException("Звание " + newRankTitle + " не найдено в справочнике"));
+                .orElseThrow(() -> new RuntimeException("Звание не найдено"));
 
         serviceman.setRank(newRank);
         if (newPosition != null && !newPosition.isBlank()) {
             serviceman.setPosition(newPosition);
         }
-        servicemanRepository.save(serviceman);
+
+        servicemanRepository.update(serviceman); // Обновляем через JDBC
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", "Военнослужащий успешно повышен");
@@ -170,12 +172,10 @@ public class ServicemanRestController {
         return response;
     }
 
-    // Бизнес-операция 3: Частичное обновление данных (PATCH)
     @PatchMapping("/servicemen/{id}")
-    public Serviceman partialUpdateServiceman(@PathVariable Long id,
-                                              @RequestBody Map<String, Object> updates) {
+    public Serviceman partialUpdateServiceman(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         Serviceman serviceman = servicemanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Военнослужащий не найден"));
+                .orElseThrow(() -> new RuntimeException("Военнослужащий не найден"));
 
         updates.forEach((key, value) -> {
             switch (key) {
@@ -187,18 +187,19 @@ public class ServicemanRestController {
                 case "birthDate" -> serviceman.setBirthDate(LocalDate.parse((String) value));
                 case "rankTitle" -> {
                     Rank rank = rankRepository.findByTitleIgnoreCase((String) value)
-                            .orElseThrow(() -> new EntityNotFoundException("Звание не найдено"));
+                            .orElseThrow(() -> new RuntimeException("Звание не найдено"));
                     serviceman.setRank(rank);
                 }
                 case "addressId" -> {
                     Long addrId = Long.valueOf(value.toString());
                     Address address = addressRepository.findById(addrId)
-                            .orElseThrow(() -> new EntityNotFoundException("Адрес не найден"));
+                            .orElseThrow(() -> new RuntimeException("Адрес не найден"));
                     serviceman.setAddress(address);
                 }
             }
         });
 
-        return servicemanRepository.save(serviceman);
+        servicemanRepository.update(serviceman); // Обновляем через JDBC
+        return servicemanRepository.findById(id).get();
     }
 }
