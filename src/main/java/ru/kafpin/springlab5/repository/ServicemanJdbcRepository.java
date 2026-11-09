@@ -36,11 +36,16 @@ public class ServicemanJdbcRepository {
         return jdbcTemplate.query(SELECT_ALL_JOIN_SQL, new ServicemanMapper());
     }
 
-    // Найти по ID (GET)
-    public Optional<Serviceman> findById(Long id) {
+//    // Найти по ID (GET)
+//    public Optional<Serviceman> findById(Long id) {
+//        String sql = SELECT_ALL_JOIN_SQL + " WHERE s.id = ?";
+//        List<Serviceman> result = jdbcTemplate.query(sql, new ServicemanMapper(), id);
+//        return result.stream().findFirst();
+//    }
+        public Optional<Serviceman> findById(Long id) {
         String sql = SELECT_ALL_JOIN_SQL + " WHERE s.id = ?";
-        List<Serviceman> result = jdbcTemplate.query(sql, new ServicemanMapper(), id);
-        return result.stream().findFirst();
+        Serviceman serviceman = jdbcTemplate.queryForObject(sql, new ServicemanMapper(), id);
+        return Optional.ofNullable(serviceman);
     }
 
     // Создать нового (POST)
